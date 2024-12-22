@@ -1,23 +1,25 @@
 #!/bin/bash
 
 # Declare the domain and backend server variables
-DOMAIN_NAME="yourdomain.com"
-BACKEND_SERVER="your IP"
+DOMAIN_NAME="sub.domain.com"
+BACKEND_SERVER="IP:PORT"
 
 # Extract a unique upstream name from the domain (e.g., replace dots with underscores)
-UPSTREAM_NAME=$(echo "$DOMAIN_NAME" | tr '.' '_')_backend
+# UPSTREAM_NAME=$(echo "$DOMAIN_NAME" | tr '.' '_')_backend
+
+UPSTREAM_NAME=$(echo "$DOMAIN_NAME" | tr '.' '_')_backend_$(date +%s)
 
 # Generate the Nginx configuration file
 cat <<EOL > /etc/nginx/sites-available/$DOMAIN_NAME
 # Upstreams
 upstream $UPSTREAM_NAME {
-    server http://$BACKEND_SERVER;
+    server $BACKEND_SERVER;  # No 'http://' prefix
 }
 
 # HTTPS Server
 server {
     listen 443 ssl http2;
-    server_name $DOMAIN_NAME www.$DOMAIN_NAME;
+    server_name $DOMAIN_NAME;
 
     # Logs
     access_log /var/log/nginx/${DOMAIN_NAME}_access.log;
@@ -26,7 +28,7 @@ server {
     # Increase client upload size
     client_max_body_size 100M;
 
-    # Security headers
+	# Security headers
     add_header Content-Security-Policy "upgrade-insecure-requests";
     add_header X-Frame-Options "SAMEORIGIN" always;
     add_header X-XSS-Protection "1; mode=block" always;
@@ -40,7 +42,7 @@ server {
     ssl_certificate_key /etc/letsencrypt/live/$DOMAIN_NAME/privkey.pem;
     include /etc/letsencrypt/options-ssl-nginx.conf;
     ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
-    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_protocols TLSv1.2 TLSv1.3;  # Remove duplicates
 
     # gzip compression
     gzip on;
@@ -58,7 +60,7 @@ server {
         proxy_set_header X-Forwarded-Proto \$scheme;
         proxy_set_header X-Frame-Options SAMEORIGIN;
         proxy_set_header Early-Data \$ssl_early_data;
-        proxy_buffers 256 16k;
+		proxy_buffers 256 16k;
         proxy_buffer_size 16k;
         proxy_read_timeout 600s;
         proxy_http_version 1.1;
@@ -69,7 +71,7 @@ server {
 # HTTP to HTTPS Redirect
 server {
     listen 80;
-    server_name $DOMAIN_NAME www.$DOMAIN_NAME;
+    server_name $DOMAIN_NAME;
     return 301 https://\$host\$request_uri;
 }
 EOL
@@ -79,3 +81,5 @@ ln -s /etc/nginx/sites-available/$DOMAIN_NAME /etc/nginx/sites-enabled/$DOMAIN_N
 
 # Test and reload Nginx
 nginx -t && systemctl reload nginx
+
+
