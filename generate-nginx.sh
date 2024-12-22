@@ -1,14 +1,17 @@
 #!/bin/bash
 
 # Declare the domain and backend server variables
-DOMAIN_NAME="domain.com" # Replace with your domain
-BACKEND_SERVER="IP:port" # Replace with your backend IP and port
+DOMAIN_NAME="yourdomain.com"
+BACKEND_SERVER="your IP"
+
+# Extract a unique upstream name from the domain (e.g., replace dots with underscores)
+UPSTREAM_NAME=$(echo "$DOMAIN_NAME" | tr '.' '_')_backend
 
 # Generate the Nginx configuration file
 cat <<EOL > /etc/nginx/sites-available/$DOMAIN_NAME
 # Upstreams
-upstream backend {
-    server $BACKEND_SERVER;
+upstream $UPSTREAM_NAME {
+    server http://$BACKEND_SERVER;
 }
 
 # HTTPS Server
@@ -59,7 +62,7 @@ server {
         proxy_buffer_size 16k;
         proxy_read_timeout 600s;
         proxy_http_version 1.1;
-        proxy_pass http://backend;
+        proxy_pass http://$UPSTREAM_NAME;
     }
 }
 
@@ -72,12 +75,7 @@ server {
 EOL
 
 # Enable the site
-ln -sf /etc/nginx/sites-available/$DOMAIN_NAME /etc/nginx/sites-enabled/$DOMAIN_NAME
+ln -s /etc/nginx/sites-available/$DOMAIN_NAME /etc/nginx/sites-enabled/$DOMAIN_NAME
 
 # Test and reload Nginx
-if nginx -t; then
-    systemctl reload nginx
-    echo "Nginx configuration for $DOMAIN_NAME has been successfully applied."
-else
-    echo "Nginx configuration test failed. Please check the configuration."
-fi
+nginx -t && systemctl reload nginx
