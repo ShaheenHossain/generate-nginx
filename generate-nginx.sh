@@ -26,7 +26,7 @@ server {
     error_log /var/log/nginx/${DOMAIN_NAME}_error.log;
 
     # Increase client upload size
-    client_max_body_size 100M;
+    client_max_body_size 500M;
 
 	# Security headers
     add_header Content-Security-Policy "upgrade-insecure-requests";
@@ -43,6 +43,11 @@ server {
     include /etc/letsencrypt/options-ssl-nginx.conf;
     ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
     ssl_protocols TLSv1.2 TLSv1.3;  # Remove duplicates
+
+    #ssl_certificate /etc/nginx/certificate/$DOMAIN_NAME.crt;
+    #ssl_certificate_key /etc/nginx/certificate/$DOMAIN_NAME.key;
+    #ssl_protocols TLSv1 TLSv1.1 TLSv1.2; # don’t use SSLv3 ref: POODLE
+
 
     # gzip compression
     gzip on;
